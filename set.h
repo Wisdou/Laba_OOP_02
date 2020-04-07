@@ -117,7 +117,7 @@ public:
     {
         if (!find(new_element))
         {
-            table[hash_function(new_element)].add_element(new_element);
+            table[hash_function(new_element)].add(new_element);
             num_size++;
         }
         if (num_size >= max_size)
@@ -126,7 +126,14 @@ public:
     void print(QTextStream* stream) const
     {
         for (size_t i = 0; i < max_size; i++)
-            table[i].show(stream);
+        {
+            Iterator<A> new_iterator(table[i]);
+            while (!new_iterator.atEnd())
+            {
+                *stream << new_iterator.get() + "\n";
+                new_iterator.move();
+            }
+        }
     }
     void operator<< (const A &new_element)
     {
@@ -245,41 +252,6 @@ public:
                  p.move();
              }
         }
-    }
-    void sizeset(QTextStream* stream)
-    {
-        for (size_t i =0 ; i < maximum(); i++)
-            *stream << table[i].get_size() << "\n";
-    }
-};
-
-template <class T>
-class Iterator
-{
-private:
-    typename CleverPointer<T>::Element* pointer;
-public:
-    Iterator()
-    {
-        pointer = nullptr;
-    }
-public:
-    Iterator(const CleverPointer<T> &data)
-    {
-        pointer = data.part;
-    }
-    bool atEnd()
-    {
-        return pointer == nullptr ? 1:0;
-    }
-    void move()
-    {
-        if (!atEnd())
-            pointer = pointer->next;
-    }
-    T get()
-    {
-        return pointer->get_datum();
     }
 };
 

@@ -3,159 +3,136 @@
 
 #include <QTextStream>
 
+template <class T>
+class Iterator;
+
 template<class T>
 class CleverPointer
 {
 private:
-    class Element
+    struct Node
     {
-    public:
-        Element* next;
-        T* datum = new T;
-        void show(QTextStream* stream)
+        Node(const T &value)
         {
-            *stream << *datum << "\n";
-            if (next)
-                next->show(stream);
+            this->next = nullptr;
+            this->value = value;
         }
-        void add_element(T new_element)
-        {
-            if (!next)
-            {
-                next = new Element;
-                *(next->datum) = new_element;
-                next->next = nullptr;
-            }
-            else if (next)
-                next->add_element(new_element);
-        }
-        bool find(T check_Element)
-        {
-            if (*datum == check_Element)
-                return 1;
-            else if (next)
-                return next->find(check_Element);
-            else
-                return 0;
-        }
-        Element* deleter(T del_Element, unsigned int* size)
-        {
-            if (!this)
-                return nullptr;
-            else if (del_Element == datum)
-            {
-                Element* reset = next;
-                *size --;
-                delete datum;
-                delete this;
-                return reset->deleter(del_Element,size);
-            }
-            else
-            {
-                next = next->deleter(del_Element,size);
-                return this;
-            }
-        }
-        void clear_all()
-        {
-            if (next)
-            {
-                next->clear_all();
-                delete datum;
-                delete next;
-            }
-        }
-        T get_datum()
-        {
-            return *datum;
-        }
+        Node* next;
+        T value;
     };
-    unsigned int m_size = 0;
-    Element* part;
+    Node* root;
 public:
-    template<typename> friend class Iterator;
-    CleverPointer()
+    friend class Iterator<T>;
+    explicit CleverPointer()
     {
-        part = nullptr;
+        root = nullptr;
     }
     ~CleverPointer()
     {
-        clear();
+        this->clear();
     }
-    CleverPointer<T>(const CleverPointer<T> &other)
+    void add(const T &value)
     {
-        part = nullptr;
-        Element* dater = other.part;
-        while (dater)
+        if (!root)
         {
-            add_element(*(dater->datum));
-            dater = dater->next;
+            root = new Node(value);
+            return;
+        }
+        Node* pointer = root;
+        while (pointer->next)
+        {
+            pointer = pointer->next;
+        }
+        pointer->next = new Node(value);
+    }
+    void deleter(const T &value)
+    {
+        if (!root)
+        {
+            return;
+        }
+        Node* previous = root;
+        while (root->value == value)
+        {
+            this->root = this->root->next;
+            if (!root)
+            {
+                return;
+            }
+            delete previous;
+            previous = this->root;
+        }
+        previous = root;
+        Node* pointer = root;
+        while (pointer)
+        {
+            if (pointer->value == value)
+            {
+                previous->next = pointer->next;
+                delete pointer;
+                pointer = previous->next;
+            }
+            else
+            {
+                previous = pointer;
+                pointer = pointer->next;
+            }
         }
     }
-    void operator=(const CleverPointer<T> &other)
+    bool find(const T &value)
     {
-        clear();
-        Element* dater = other.part;
-        while (dater)
+        Node* pointer = root;
+        while (pointer)
         {
-            add_Element(*(dater->datum));
-            dater = dater->next;
+            if (pointer->value == value)
+            {
+                return true;
+            }
+            pointer = pointer->next;
         }
+        return false;
     }
     void clear()
     {
-        m_size = 0;
-        if (part)
-            part->clear_all();
-        delete part;
-        part = nullptr;
-    }
-    bool operator==(const CleverPointer<T> &other)
-    {
-        Element* start = part;
-        Element* other_start = other.part;
-        if (m_size != other.get_size())
-            return 0;
-        while(start)
+        Node* previous;
+        Node* pointer = this->root;
+        while (pointer)
         {
-            if (!other_start->find(start->get_datum()))
-                return 0;
-            start = start->next;
+            previous = pointer;
+            pointer = pointer->next;
+            delete previous;
         }
-        return 1;
-    }
-    unsigned int get_size() const
-    {
-        return m_size;
-    }
-    void add_element(T new_element)
-    {
-        if (!part)
-        {
-            part = new Element;
-            *(part->datum) = new_element;
-            part->next = nullptr;
-        }
-        else
-            part->add_element(new_element);
-        m_size++;
-    }
-    void show(QTextStream* stream)
-    {
-        if (part)
-            part->show(stream);
-    }
-    void deleter(T del_element)
-    {
-        part = part->deleter(del_element,&m_size);
-    }
-    bool find(T check_Element)
-    {
-        if (part)
-            return part->find(check_Element);
-        else
-            return 0;
+        this->root = nullptr;
     }
 };
 
+template <class T>
+class Iterator
+{
+private:
+    typedef typename CleverPointer<T>::Node* Pointer;
+    Pointer pointer;
+public:
+    Iterator(const CleverPointer<T> &data)
+    {
+        this->pointer = data.root;
+    }
+    Iterator(CleverPointer<T>* data)
+    {
+        this->pointer = data->root;
+    }
+    bool atEnd()
+    {
+        return this->pointer == nullptr ? true:false;
+    }
+    void move()
+    {
+        if (!atEnd())
+            this->pointer = this->pointer->next;
+    }
+    T get()
+    {
+        return this->pointer->value;
+    }
+};
 #endif // CLEVERPOINTER_H
